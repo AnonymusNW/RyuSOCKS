@@ -62,13 +62,13 @@ namespace RyuSocks.Test.Auth
             bool acceptable)
         {
             UsernameAndPasswordRequest expectedUsernameAndPasswordRequest =
-                new UsernameAndPasswordRequest(username, password);
-            UsernameAndPasswordResponse expectedUsernameAndPasswordResponse = acceptable ? new UsernameAndPasswordResponse([Constants.UsernameAndPasswordVersion, 0]) : new UsernameAndPasswordResponse([Constants.UsernameAndPasswordVersion, 1]);
+                new(username, password);
+            UsernameAndPasswordResponse expectedUsernameAndPasswordResponse = acceptable ? new UsernameAndPasswordResponse([AuthConsts.UsernameAndPasswordVersion, 0]) : new UsernameAndPasswordResponse([AuthConsts.UsernameAndPasswordVersion, 1]);
             byte[] expectedUsernameAndPasswordResponseBytes = expectedUsernameAndPasswordResponse.Bytes;
             byte[] expectedUsernameAndPasswordRequestBytes = expectedUsernameAndPasswordRequest.Bytes;
             UsernameAndPassword usernameAndPassword = new()
             {
-                Database = new Dictionary<string, string>{{"Username", "Password"}},
+                Database = new Dictionary<string, string> { { "Username", "Password" } },
                 Username = username,
                 Password = password,
                 IsClient = true
@@ -82,7 +82,7 @@ namespace RyuSocks.Test.Auth
             }
             else
             {
-                 Assert.Throws<AuthenticationException>(() => usernameAndPassword.Authenticate(expectedUsernameAndPasswordResponseBytes, out _));
+                Assert.Throws<AuthenticationException>(() => usernameAndPassword.Authenticate(expectedUsernameAndPasswordResponseBytes, out _));
             }
         }
 
