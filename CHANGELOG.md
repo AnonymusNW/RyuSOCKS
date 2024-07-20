@@ -23,6 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with the proxy server.
 - Username and password authentication method
   according to [RFC 1929](https://datatracker.ietf.org/doc/html/rfc1929) ([#16](https://github.com/TSRBerry/RyuSOCKS/pull/16))
+- New method `Packet.IsValid()` which returns a bool instead of throwing exceptions. 
+- `Validate()` implementation for `EndPointPacket`.
+<<<<<<< HEAD
+- Username and password authentication method
+  according to [RFC 1929](https://datatracker.ietf.org/doc/html/rfc1929) ([#16](https://github.com/TSRBerry/RyuSOCKS/pull/16))
+=======
+- New method `Packet.IsValid()` which returns a bool instead of throwing exceptions. 
+- `Validate()` implementation for `EndPointPacket`.
+>>>>>>> TheBerryOne/dev
 
 ### Changed
 
@@ -32,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved exception messages.
 - Throw `ArgumentOutOfRangeException` instead of `ArgumentException`
   if the length of the domain name is invalid for `EndpointPackets`.
+- Replaced init-only setter for `Packet.Bytes` with a regular setter.
 
 ### Fixed
 

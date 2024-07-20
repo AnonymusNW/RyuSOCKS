@@ -25,6 +25,7 @@ namespace RyuSocks.Packets
 {
     public abstract class EndpointPacket : Packet
     {
+        private const byte MinimumPacketLength = 8;
         private const byte MinimumDomainNameLength = byte.MinValue + 1;
         private const byte MaximumDomainNameLength = byte.MaxValue;
 
@@ -37,6 +38,17 @@ namespace RyuSocks.Packets
             set
             {
                 Bytes[3] = (byte)value;
+
+                if (AddressType is AddressType.Ipv4Address or AddressType.Ipv6Address)
+                {
+                    int requiredLength = GetEndpointPacketLength();
+                    if (Bytes.Length != requiredLength)
+                    {
+                        byte[] resizeBytes = Bytes;
+                        Array.Resize(ref resizeBytes, requiredLength);
+                        Bytes = resizeBytes;
+                    }
+                }
             }
         }
 
@@ -47,9 +59,9 @@ namespace RyuSocks.Packets
                 return AddressType switch
                 {
                     AddressType.Ipv4Address => new IPAddress(Bytes[4..8]),
-                    AddressType.DomainName => throw new InvalidOperationException($"Can't get {nameof(Address)} for {nameof(Types.AddressType)} {AddressType.DomainName}."),
                     AddressType.Ipv6Address => new IPAddress(Bytes[4..20]),
-                    _ => throw new ArgumentOutOfRangeException(nameof(AddressType)),
+                    _ => throw new InvalidOperationException(
+                        $"Can't get {nameof(Address)} for {nameof(Types.AddressType)} {AddressType}."),
                 };
             }
             set
@@ -59,13 +71,44 @@ namespace RyuSocks.Packets
                     case AddressType.Ipv4Address:
                         value.GetAddressBytes().CopyTo(Bytes.AsSpan(4, 4));
                         return;
-                    case AddressType.DomainName:
-                        throw new InvalidOperationException($"Can't set {nameof(Address)} for {nameof(Types.AddressType)} {AddressType.DomainName}.");
                     case AddressType.Ipv6Address:
                         value.GetAddressBytes().CopyTo(Bytes.AsSpan(4, 16));
                         return;
                     default:
-                        throw new ArgumentOutOfRangeException(nameof(value));
+                        throw new InvalidOperationException(
+                            $"Can't set {nameof(Address)} for {nameof(Types.AddressType)} {AddressType}.");
+                }
+            }
+        }
+
+        protected byte DomainNameLength
+        {
+            get
+            {
+                return AddressType switch
+                {
+                    AddressType.DomainName => Bytes[4],
+                    _ => throw new InvalidOperationException(
+                        $"Can't get {nameof(DomainNameLength)} for {nameof(Types.AddressType)} {AddressType}."),
+                };
+            }
+            set
+            {
+                if (AddressType != AddressType.DomainName)
+                {
+                    throw new InvalidOperationException(
+                        $"Can't set {nameof(DomainNameLength)} for {nameof(Types.AddressType)} {AddressType}.");
+                }
+
+                ArgumentOutOfRangeException.ThrowIfLessThan(value, MinimumDomainNameLength);
+                Bytes[4] = value;
+
+                int requiredLength = GetEndpointPacketLength();
+                if (Bytes.Length != requiredLength)
+                {
+                    byte[] resizeBytes = Bytes;
+                    Array.Resize(ref resizeBytes, requiredLength);
+                    Bytes = resizeBytes;
                 }
             }
         }
@@ -74,33 +117,25 @@ namespace RyuSocks.Packets
         {
             get
             {
-                switch (AddressType)
+                return AddressType switch
                 {
-                    case AddressType.Ipv4Address:
-                        throw new InvalidOperationException($"Can't get {nameof(DomainName)} for {nameof(Types.AddressType)} {AddressType.Ipv4Address}.");
-                    case AddressType.DomainName:
-                        return Encoding.ASCII.GetString(Bytes, 5, Bytes[4]);
-                    case AddressType.Ipv6Address:
-                        throw new InvalidOperationException($"Can't get {nameof(DomainName)} for {nameof(Types.AddressType)} {AddressType.Ipv6Address}.");
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(AddressType));
-                }
+                    AddressType.DomainName => Encoding.ASCII.GetString(Bytes, 5, DomainNameLength),
+                    _ => throw new InvalidOperationException(
+                        $"Can't get {nameof(DomainName)} for {nameof(Types.AddressType)} {AddressType}.")
+                };
             }
             set
             {
                 switch (AddressType)
                 {
-                    case AddressType.Ipv4Address:
-                        throw new InvalidOperationException($"Can't set {nameof(DomainName)} for {nameof(Types.AddressType)} {AddressType.Ipv4Address}.");
                     case AddressType.DomainName:
                         ArgumentOutOfRangeException.ThrowIfGreaterThan(value.Length, MaximumDomainNameLength);
-                        Bytes[4] = (byte)value.Length;
-                        Encoding.ASCII.GetBytes(value, Bytes.AsSpan(5, Bytes[4]));
+                        DomainNameLength = (byte)value.Length;
+                        Encoding.ASCII.GetBytes(value, Bytes.AsSpan(5, DomainNameLength));
                         return;
-                    case AddressType.Ipv6Address:
-                        throw new InvalidOperationException($"Can't set {nameof(DomainName)} for {nameof(Types.AddressType)} {AddressType.Ipv6Address}.");
                     default:
-                        throw new ArgumentOutOfRangeException(nameof(value));
+                        throw new InvalidOperationException(
+                            $"Can't set {nameof(DomainName)} for {nameof(Types.AddressType)} {AddressType}.");
                 }
             }
         }
@@ -125,7 +160,10 @@ namespace RyuSocks.Packets
             ? new ProxyEndpoint(new DnsEndPoint(DomainName, Port))
             : new ProxyEndpoint(new IPEndPoint(Address, Port));
 
-        protected EndpointPacket(byte[] bytes) : base(bytes) { }
+        protected EndpointPacket(byte[] bytes) : base(bytes)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(bytes.Length, MinimumPacketLength, nameof(bytes));
+        }
 
         protected EndpointPacket(IPEndPoint endpoint)
         {
@@ -133,7 +171,8 @@ namespace RyuSocks.Packets
             {
                 AddressFamily.InterNetwork => new byte[10],
                 AddressFamily.InterNetworkV6 => new byte[22],
-                _ => throw new ArgumentException($"Unsupported {nameof(AddressFamily)}: {endpoint.AddressFamily}", nameof(endpoint)),
+                _ => throw new ArgumentException(
+                    $"Unsupported {nameof(AddressFamily)}: {endpoint.AddressFamily}", nameof(endpoint)),
             };
 
             AddressType = Bytes.Length == 10 ? AddressType.Ipv4Address : AddressType.Ipv6Address;
@@ -145,7 +184,9 @@ namespace RyuSocks.Packets
         {
             if (endpoint.Host.Length is < MinimumDomainNameLength or > MaximumDomainNameLength)
             {
-                throw new ArgumentOutOfRangeException(nameof(endpoint), $"Length of Host must be between {MinimumDomainNameLength} and {MaximumDomainNameLength}.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(endpoint),
+                    $"Host length must be between {MinimumDomainNameLength} and {MaximumDomainNameLength}.");
             }
 
             Bytes = new byte[7 + endpoint.Host.Length];
@@ -158,7 +199,9 @@ namespace RyuSocks.Packets
         {
             if (endpoint.Type == AddressType.DomainName && endpoint.DomainName.Length is < MinimumDomainNameLength or > MaximumDomainNameLength)
             {
-                throw new ArgumentOutOfRangeException(nameof(endpoint), $"Length of Host must be between {MinimumDomainNameLength} and {MaximumDomainNameLength}.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(endpoint),
+                    $"Host length must be between {MinimumDomainNameLength} and {MaximumDomainNameLength}.");
             }
 
             Bytes = endpoint.Type switch
@@ -166,7 +209,8 @@ namespace RyuSocks.Packets
                 AddressType.Ipv4Address => new byte[10],
                 AddressType.DomainName => Bytes = new byte[7 + endpoint.DomainName.Length],
                 AddressType.Ipv6Address => new byte[22],
-                _ => throw new ArgumentException($"Invalid {nameof(Types.AddressType)}: {endpoint.Type}", nameof(endpoint)),
+                _ => throw new ArgumentException(
+                    $"Invalid {nameof(Types.AddressType)}: {endpoint.Type}", nameof(endpoint)),
             };
 
             AddressType = endpoint.Type;
@@ -193,7 +237,7 @@ namespace RyuSocks.Packets
             return AddressType switch
             {
                 AddressType.Ipv4Address => 10,
-                AddressType.DomainName => 7 + DomainName.Length,
+                AddressType.DomainName => 7 + DomainNameLength,
                 AddressType.Ipv6Address => 22,
                 _ => throw new ArgumentOutOfRangeException(nameof(AddressType)),
             };
@@ -204,10 +248,44 @@ namespace RyuSocks.Packets
             return AddressType switch
             {
                 AddressType.Ipv4Address => Bytes.AsSpan(8, 2),
-                AddressType.DomainName => Bytes.AsSpan(5 + Bytes[4], 2),
+                AddressType.DomainName => Bytes.AsSpan(5 + DomainNameLength, 2),
                 AddressType.Ipv6Address => Bytes.AsSpan(20, 2),
                 _ => throw new ArgumentOutOfRangeException(nameof(AddressType)),
             };
+        }
+
+        public override void Validate()
+        {
+            if (Bytes.Length < MinimumPacketLength)
+            {
+                throw new InvalidOperationException($"Invalid packet length: {Bytes.Length} (Expected: >= {MinimumPacketLength})");
+            }
+
+            switch (AddressType)
+            {
+                case AddressType.Ipv4Address:
+                case AddressType.Ipv6Address:
+                    if (Address == null)
+                    {
+                        throw new InvalidOperationException($"{nameof(Address)} could not be parsed.");
+                    }
+
+                    break;
+                case AddressType.DomainName:
+                    if (DomainName.Length is < MinimumDomainNameLength or > MaximumDomainNameLength)
+                    {
+                        throw new InvalidOperationException($"Invalid {nameof(DomainName)} length: {DomainName.Length} (Expected: {MinimumDomainNameLength} <= length <= {MaximumDomainNameLength})");
+                    }
+
+                    if (DomainNameLength != DomainName.Length)
+                    {
+                        throw new InvalidOperationException($"{nameof(DomainNameLength)} is not equal to the length of {nameof(DomainName)}: {DomainNameLength} != {DomainName.Length}");
+                    }
+
+                    break;
+                default:
+                    throw new InvalidOperationException($"{nameof(AddressType)} is invalid: {AddressType}");
+            }
         }
     }
 }

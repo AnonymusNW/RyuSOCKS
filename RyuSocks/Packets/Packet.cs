@@ -23,7 +23,10 @@ namespace RyuSocks.Packets
         /// <summary>
         /// The contents of the packet.
         /// </summary>
-        public byte[] Bytes { get; protected init; }
+        public byte[] Bytes { get; protected set; }
+
+        /// <inheritdoc cref="Bytes"/>
+        public Span<byte> AsSpan() => Bytes;
 
         /// <summary>
         /// Validate the structure of the packet.
@@ -31,8 +34,24 @@ namespace RyuSocks.Packets
         /// </summary>
         public abstract void Validate();
 
-        /// <inheritdoc cref="Bytes"/>
-        public Span<byte> AsSpan() => Bytes;
+        /// <summary>
+        /// Check whether the structure of the packet is valid.
+        /// This method calls <see cref="Validate"/> internally, but doesn't throw the exception on failure
+        /// and returns a <see langword="bool"/> instead.
+        /// </summary>
+        public bool IsValid()
+        {
+            try
+            {
+                Validate();
+            }
+            catch
+            {
+                return false;
+            }
+
+            return true;
+        }
 
         protected Packet() { }
 
