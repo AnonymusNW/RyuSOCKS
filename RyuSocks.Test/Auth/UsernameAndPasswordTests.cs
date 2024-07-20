@@ -18,6 +18,7 @@ using RyuSocks.Auth;
 using RyuSocks.Auth.Packets;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Authentication;
 using Xunit;
 
@@ -37,7 +38,7 @@ namespace RyuSocks.Test.Auth
         [InlineData(new byte[] { 0x01 }, false)]
         [InlineData(new byte[] { }, false)]
         [InlineData(new byte[] { 0x74 }, false)]
-        public void Authenticate_ThrowsOnWrongVersion(byte[] incomingPacket, bool isValidInput)
+        public void Authenticate_CreatesPacketOnRightVersion(byte[] incomingPacket, bool hasRightVersion)
         {
             UsernameAndPassword usernameAndPassword = new()
             {
@@ -45,13 +46,13 @@ namespace RyuSocks.Test.Auth
                 IsClient = false
             };
 
-            if (!isValidInput)
+            if (!hasRightVersion)
             {
-                Assert.Throws<InvalidOperationException>(() => usernameAndPassword.Authenticate(incomingPacket, out _));
+                Assert.Throws<InvalidOperationException>(() => new UsernameAndPasswordRequest([.. incomingPacket]));
             }
             else
             {
-                Assert.Throws<AuthenticationException>(() => usernameAndPassword.Authenticate(incomingPacket, out _));
+                UsernameAndPasswordRequest _incomingPacket = new([.. incomingPacket]);
             }
         }
 
@@ -105,6 +106,8 @@ namespace RyuSocks.Test.Auth
             };
 
             usernameAndPassword.Authenticate(null, out ReadOnlySpan<byte> outgoingPacket);
+            UsernameAndPasswordRequest input = new(outgoingPacket.ToArray());
+            input.Validate();
 
             if (inputTypes is 1 or 2)
             {
