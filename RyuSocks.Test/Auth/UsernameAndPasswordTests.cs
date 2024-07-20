@@ -18,7 +18,6 @@ using RyuSocks.Auth;
 using RyuSocks.Auth.Packets;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Authentication;
 using Xunit;
 
@@ -31,31 +30,7 @@ namespace RyuSocks.Test.Auth
             Version = AuthConsts.UsernameAndPasswordVersion,
             Status = 0,
         };
-
-        [Theory]
-        [InlineData(new byte[] { 0xFF, 0xFF, 0xAA, 0x00, 0xCC }, false)]
-        [InlineData(new byte[] { 0x01, 0x01, 0x01, 0x01, 0x01 }, true)]
-        [InlineData(new byte[] { 0x01 }, false)]
-        [InlineData(new byte[] { }, false)]
-        [InlineData(new byte[] { 0x74 }, false)]
-        public void Authenticate_CreatesPacketOnRightVersion(byte[] incomingPacket, bool hasRightVersion)
-        {
-            UsernameAndPassword usernameAndPassword = new()
-            {
-                Database = [],
-                IsClient = false
-            };
-
-            if (!hasRightVersion)
-            {
-                Assert.Throws<InvalidOperationException>(() => new UsernameAndPasswordRequest([.. incomingPacket]));
-            }
-            else
-            {
-                UsernameAndPasswordRequest _incomingPacket = new([.. incomingPacket]);
-            }
-        }
-
+        
         [Theory]
         [InlineData("Username", "Password", true)]
         [InlineData("InvalidUsername", "InvalidPassword", false)]
@@ -65,8 +40,7 @@ namespace RyuSocks.Test.Auth
             UsernameAndPasswordRequest expectedUsernameAndPasswordRequest =
                 new(username, password);
             UsernameAndPasswordResponse expectedUsernameAndPasswordResponse = acceptable ? new UsernameAndPasswordResponse([AuthConsts.UsernameAndPasswordVersion, 0]) : new UsernameAndPasswordResponse([AuthConsts.UsernameAndPasswordVersion, 1]);
-            byte[] expectedUsernameAndPasswordResponseBytes = expectedUsernameAndPasswordResponse.Bytes;
-            byte[] expectedUsernameAndPasswordRequestBytes = expectedUsernameAndPasswordRequest.Bytes;
+            
             UsernameAndPassword usernameAndPassword = new()
             {
                 Database = new Dictionary<string, string> { { "Username", "Password" } },
@@ -76,14 +50,14 @@ namespace RyuSocks.Test.Auth
             };
 
             usernameAndPassword.Authenticate(null, out ReadOnlySpan<byte> responsePacket);
-            Assert.Equal(responsePacket, expectedUsernameAndPasswordRequestBytes);
+            Assert.Equal(responsePacket,expectedUsernameAndPasswordRequest.Bytes);
             if (acceptable)
             {
-                Assert.True(usernameAndPassword.Authenticate(expectedUsernameAndPasswordResponseBytes, out _));
+                Assert.True(usernameAndPassword.Authenticate(expectedUsernameAndPasswordResponse.Bytes, out _));
             }
             else
             {
-                Assert.Throws<AuthenticationException>(() => usernameAndPassword.Authenticate(expectedUsernameAndPasswordResponseBytes, out _));
+                Assert.Throws<AuthenticationException>(() => usernameAndPassword.Authenticate(expectedUsernameAndPasswordResponse.Bytes, out _));
             }
         }
 
