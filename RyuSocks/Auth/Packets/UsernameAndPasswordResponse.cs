@@ -59,7 +59,7 @@ namespace RyuSocks.Auth.Packets
         {
             if (Version != AuthConsts.UsernameAndPasswordVersion)
             {
-                throw new InvalidOperationException($"${nameof(Version)} is invalid: {Version:X} (Expected: {AuthConsts.UsernameAndPasswordVersion})");
+                throw new InvalidOperationException($"{nameof(Version)} is invalid: {Version:X} (Expected: {AuthConsts.UsernameAndPasswordVersion:X})");
             }
         }
     }

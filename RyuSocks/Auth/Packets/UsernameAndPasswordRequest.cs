@@ -135,22 +135,23 @@ namespace RyuSocks.Auth.Packets
 
             if (Bytes.Length is < MinLength or > MaxLength)
             {
-                throw new InvalidOperationException($"$Package has wrong Length: {Bytes.Length:X} (Expected: >= {MinLength} || <= {MaxLength})");
+                throw new InvalidOperationException(
+                    $"Packet length is invalid: {Bytes.Length} (Expected: {MinLength} <= length <= {MaxLength})");
             }
 
             if (Version != AuthConsts.UsernameAndPasswordVersion)
             {
-                throw new InvalidOperationException($"${nameof(Version)} is invalid: {Version:X} (Expected: {AuthConsts.UsernameAndPasswordVersion:X})");
+                throw new InvalidOperationException($"{nameof(Version)} is invalid: {Version:X} (Expected: {AuthConsts.UsernameAndPasswordVersion:X})");
             }
 
-            if (Username == null)
+            if (string.IsNullOrEmpty(Username))
             {
-                throw new InvalidOperationException($"$Username is invalid: {Username} (Expected: Literally Anything but null)");
+                throw new InvalidOperationException($"{nameof(Username)} can't be null or empty.");
             }
 
-            if (Password == null)
+            if (string.IsNullOrEmpty(Password))
             {
-                throw new InvalidOperationException($"Password is invalid: {Password} (No Password is not allowed)");
+                throw new InvalidOperationException($"{nameof(Password)} can't be null or empty.");
             }
         }
     }
