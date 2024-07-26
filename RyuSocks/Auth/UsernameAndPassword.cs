@@ -29,6 +29,8 @@ namespace RyuSocks.Auth
     [AuthMethodImpl(0x02)]
     public class UsernameAndPassword : IProxyAuth
     {
+        public int WrapperLength => throw new NotImplementedException();
+
         public string Username;
         public string Password;
         public bool IsClient = true;
@@ -85,17 +87,15 @@ namespace RyuSocks.Auth
             throw new AuthenticationException("The provided credentials are invalid.");
         }
 
-        public ReadOnlySpan<byte> Wrap(ReadOnlySpan<byte> packet, ProxyEndpoint remoteEndpoint, out int wrapperLength)
+        public int Wrap(Span<byte> packet, int packetLength, ProxyEndpoint remoteEndpoint)
         {
-            wrapperLength = 0;
-            return packet;
+            return packetLength;
         }
 
-        public Span<byte> Unwrap(Span<byte> packet, out ProxyEndpoint remoteEndpoint, out int wrapperLength)
+        public int Unwrap(Span<byte> packet, int packetLength, out ProxyEndpoint remoteEndpoint)
         {
             remoteEndpoint = null;
-            wrapperLength = 0;
-            return packet;
+            return packetLength;
         }
     }
 }

@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   according to [RFC 1929](https://datatracker.ietf.org/doc/html/rfc1929) ([#16](https://github.com/TSRBerry/RyuSOCKS/pull/16))
 - New method `Packet.IsValid()` which returns a bool instead of throwing exceptions. 
 - `Validate()` implementation for `EndPointPacket`.
+- `Socket.Close()` and `Socket.Dispose()` methods are exposed by `SocksClient` now.
+- Missing parameterless constructor for `CommandRequest`.
 
 ### Changed
 
@@ -35,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Throw `ArgumentOutOfRangeException` instead of `ArgumentException`
   if the length of the domain name is invalid for `EndpointPackets`.
 - Replaced init-only setter for `Packet.Bytes` with a regular setter.
+- Replaced protected fields of `SocksSession` with public properties
+  containing a protected setter.
+- Changed the signature for `Wrap()` and `Unwrap()`.
 
 ### Fixed
 
