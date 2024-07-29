@@ -17,8 +17,6 @@
 using RyuSocks.Auth;
 using RyuSocks.Auth.Packets;
 using System;
-using System.Collections.Generic;
-using System.Security.Authentication;
 using Xunit;
 
 namespace RyuSocks.Test.Auth
@@ -31,69 +29,125 @@ namespace RyuSocks.Test.Auth
             Status = 0,
         };
 
-        [Theory]
-        [InlineData("Username", "Password", true)]
-        [InlineData("InvalidUsername", "InvalidPassword", false)]
-        public void Authenticate_WorksOnRegisteredUserAuthenticationClientSide(string username, string password,
-            bool acceptable)
+        public class NoExistingData
         {
-            UsernameAndPasswordRequest expectedUsernameAndPasswordRequest =
-                new(username, password);
-            UsernameAndPasswordResponse expectedUsernameAndPasswordResponse = acceptable ? new UsernameAndPasswordResponse([AuthConsts.UsernameAndPasswordVersion, 0]) : new UsernameAndPasswordResponse([AuthConsts.UsernameAndPasswordVersion, 1]);
 
-            UsernameAndPassword usernameAndPassword = new()
-            {
-                Database = new Dictionary<string, string> { { "Username", "Password" } },
-                Username = username,
-                Password = password,
-                IsClient = true
-            };
+            private readonly UsernameAndPassword _usernameAndPassword = new() { Database = [], };
 
-            usernameAndPassword.Authenticate(null, out ReadOnlySpan<byte> responsePacket);
-            Assert.Equal(responsePacket, expectedUsernameAndPasswordRequest.Bytes);
-            if (acceptable)
+            private void SetUsernameAndPassword(string username, string password)
             {
-                Assert.True(usernameAndPassword.Authenticate(expectedUsernameAndPasswordResponse.Bytes, out _));
+                _usernameAndPassword.Username = username;
+                _usernameAndPassword.Password = password;
             }
-            else
+
+            [Theory]
+            [InlineData("", "")]
+            [InlineData("", "Password")]
+            [InlineData("Username", "")]
+            [InlineData("Username", "Password")]
+            public void Authenticate_DoesNotWorkOnEmptyUserListClientSide(string username, string password)
             {
-                Assert.Throws<AuthenticationException>(() => usernameAndPassword.Authenticate(expectedUsernameAndPasswordResponse.Bytes, out _));
+                UsernameAndPasswordRequest expectedUsernameAndPasswordRequest = new(username, password);
+                UsernameAndPasswordResponse expectedUsernameAndPasswordResponse =
+                    new([AuthConsts.UsernameAndPasswordVersion, 1]);
+                SetUsernameAndPassword(username, password);
+                UsernameAndPassword usernameAndPassword = _usernameAndPassword;
+                usernameAndPassword.IsClient = true;
+                usernameAndPassword.Authenticate(null, out ReadOnlySpan<byte> responsePacket);
+
+                Assert.Equal(responsePacket, expectedUsernameAndPasswordRequest.Bytes);
+                Assert.ThrowsAny<Exception>(() =>
+                    usernameAndPassword.Authenticate(expectedUsernameAndPasswordResponse.Bytes, out _));
+            }
+
+            [Theory]
+            [InlineData("", "")]
+            [InlineData("", "Password")]
+            [InlineData("Username", "")]
+            [InlineData("Username", "Password")]
+            public void Authenticate_DoesNotWorkOnEmptyUserListServerSide(string username, string password)
+            {
+                UsernameAndPasswordRequest expectedUsernameAndPasswordRequest = new(username, password);
+                SetUsernameAndPassword(username, password);
+                UsernameAndPassword usernameAndPassword = _usernameAndPassword;
+                usernameAndPassword.IsClient = false;
+
+                Assert.ThrowsAny<Exception>(() =>
+                    usernameAndPassword.Authenticate(expectedUsernameAndPasswordRequest.Bytes,
+                        out ReadOnlySpan<byte> _));
             }
         }
 
-        [Theory]
-        [InlineData("RegisteredUsername", "RegisteredPassword", 0)]
-        [InlineData("NotRegisteredUsername", "NotRegisteredPassword", 1)]
-        [InlineData("RegisteredUsername", "WrongPassword", 2)]
-        public void Authenticate_WorksOnRegisteredUserAuthenticationServerSide(string username, string password, int inputTypes)
+        public class EntryProvided
         {
-            UsernameAndPassword usernameAndPassword = new()
-            {
-                Database = inputTypes switch
-                {
-                    0 => new Dictionary<string, string> { { username, password } },
-                    2 => new Dictionary<string, string> { { username, "RegisteredPassword" } },
-                    _ => []
-                },
-                Username = username,
-                Password = password
-            };
+            private const String ValidUsername = "Username";
+            private const String ValidPassword = "Password";
+            private readonly UsernameAndPassword _usernameAndPassword = new() { Database = [] };
 
-            usernameAndPassword.Authenticate(null, out ReadOnlySpan<byte> outgoingPacket);
-            UsernameAndPasswordRequest input = new(outgoingPacket.ToArray());
-            input.Validate();
-
-            if (inputTypes is 1 or 2)
+            public EntryProvided()
             {
-                // Since a ByRef variable (of type ReadOnlySpan) is not accepted by a lambda expression, it is converted to a byte array
-                byte[] outgoingPacketByte = outgoingPacket.ToArray();
-                Assert.Throws<AuthenticationException>(() => usernameAndPassword.Authenticate(outgoingPacketByte, out _));
+                _usernameAndPassword.Database.Add(ValidUsername, ValidPassword);
+                _usernameAndPassword.IsClient = true;
             }
-            else
+
+            private void SetUsernameAndPassword(string username, string password)
             {
-                usernameAndPassword.IsClient = false;
-                usernameAndPassword.Authenticate(outgoingPacket, out ReadOnlySpan<byte> responsePacket);
-                Assert.Equal(_expectedUsernameAndPasswordResponse.AsSpan(), responsePacket);
+                _usernameAndPassword.Username = username;
+                _usernameAndPassword.Password = password;
+            }
+
+            [Theory]
+            [InlineData(ValidUsername, ValidPassword, true)]
+            [InlineData(ValidUsername, "RandomPassword", false)]
+            [InlineData("RandomUsername", ValidPassword, false)]
+            [InlineData("RandomUsername", "RandomPassword", false)]
+            public void Authenticate_WorksOnRegisteredUserAuthenticationClientSide(string username, string password, bool registered)
+            {
+                UsernameAndPasswordRequest expectedUsernameAndPasswordRequest = new(username, password);
+                UsernameAndPasswordResponse expectedUsernameAndPasswordResponse = registered ?
+                                    new UsernameAndPasswordResponse([AuthConsts.UsernameAndPasswordVersion, 0]) : new UsernameAndPasswordResponse([AuthConsts.UsernameAndPasswordVersion, 1]);
+                SetUsernameAndPassword(username, password);
+                UsernameAndPassword usernameAndPassword = _usernameAndPassword;
+                usernameAndPassword.IsClient = true;
+                usernameAndPassword.Authenticate(null, out ReadOnlySpan<byte> responsePacket);
+                Assert.Equal(responsePacket, expectedUsernameAndPasswordRequest.Bytes);
+                if (registered)
+                {
+                    Assert.True(usernameAndPassword.Authenticate(expectedUsernameAndPasswordResponse.Bytes, out _));
+                }
+                else
+                {
+                    Assert.ThrowsAny<Exception>(() =>
+                        usernameAndPassword.Authenticate(expectedUsernameAndPasswordResponse.Bytes, out _));
+                }
+            }
+
+            [Theory]
+            [InlineData(ValidUsername, ValidPassword, true)]
+            [InlineData(ValidUsername, "RandomPassword", false)]
+            [InlineData("RandomUsername", ValidPassword, false)]
+            [InlineData("RandomUsername", "RandomPassword", false)]
+            public void Authenticate_WorksOnRegisteredUserAuthenticationServerSide(string username, string password,
+                bool registered)
+            {
+                SetUsernameAndPassword(username, password);
+                UsernameAndPassword usernameAndPassword = _usernameAndPassword;
+                usernameAndPassword.Authenticate(null, out ReadOnlySpan<byte> outgoingPacket);
+                UsernameAndPasswordRequest input = new(outgoingPacket.ToArray());
+                input.Validate();
+
+                if (!registered)
+                {
+                    // Since a ByRef variable (of type ReadOnlySpan) is not accepted by a lambda expression, it is converted to a byte array
+                    byte[] outgoingPacketByte = outgoingPacket.ToArray();
+                    Assert.ThrowsAny<Exception>(() => usernameAndPassword.Authenticate(outgoingPacketByte, out _));
+                }
+                else
+                {
+                    usernameAndPassword.IsClient = false;
+                    usernameAndPassword.Authenticate(outgoingPacket, out ReadOnlySpan<byte> responsePacket);
+                    Assert.Equal(_expectedUsernameAndPasswordResponse.AsSpan(), responsePacket);
+                }
             }
         }
 
@@ -103,28 +157,26 @@ namespace RyuSocks.Test.Auth
         {
             byte[] originalPacket = (byte[])packet.Clone();
             int packetLength = packet.Length;
-            NoAuth noAuth = new();
+            UsernameAndPassword noAuth = new();
 
-            byte[] wrappedPacket = noAuth.Wrap(packet, null, out _).ToArray();
+            noAuth.Wrap(packet, packetLength, null);
 
             Assert.Equal(packetLength, packet.Length);
             Assert.Equal(originalPacket, packet);
-            Assert.Equal(originalPacket, wrappedPacket);
         }
 
         [Theory]
         [InlineData(new byte[] { 0xFF, 0xFF, 0xAA, 0x00, 0xCC, 0xBB })]
-        public void Unwrap_DoesNotModifyPacket(byte[] packet)
+        public void Unwrap_DoesNotModifyPaket(byte[] packet)
         {
             byte[] originalPacket = (byte[])packet.Clone();
             int packetLength = packet.Length;
-            NoAuth noAuth = new();
+            UsernameAndPassword noAuth = new();
 
-            byte[] wrappedPacket = noAuth.Unwrap(packet, out _, out _).ToArray();
+            noAuth.Unwrap(packet, packetLength, out _);
 
             Assert.Equal(packetLength, packet.Length);
             Assert.Equal(originalPacket, packet);
-            Assert.Equal(originalPacket, wrappedPacket);
         }
     }
 }

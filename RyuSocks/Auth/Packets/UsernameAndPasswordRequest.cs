@@ -86,35 +86,15 @@ namespace RyuSocks.Auth.Packets
             }
         }
 
-        public UsernameAndPasswordRequest(byte[] packetBytes)
+        public UsernameAndPasswordRequest(byte[] packetBytes) : base(packetBytes)
         {
-            if (packetBytes.Length is < 4 or > 513)
-            {
-                throw new InvalidOperationException($"IncomingPacket is of wrong length: Expected: > 4 || < 513; Actual {packetBytes.Length}");
-            }
+            const int MinLength = 4;
+            const int MaxLength = 513;
 
-            Bytes = packetBytes;
-            Version = Bytes[0];
-            UsernameLength = Bytes[1];
-
-            try
+            if (Bytes.Length is < MinLength or > MaxLength)
             {
-                Username = Encoding.ASCII.GetString(Bytes[2..(2 + UsernameLength)]);
-            }
-            catch (Exception e)
-            {
-                throw new InvalidOperationException($"UsernameLength and actual Username length do not match: {Bytes[1]:X} (throws {e})");
-            }
-
-            PasswordLength = Bytes[2 + UsernameLength];
-
-            try
-            {
-                Password = Encoding.ASCII.GetString(Bytes[(2 + UsernameLength + 1)..((2 + UsernameLength + 1) + PasswordLength)]);
-            }
-            catch (Exception e)
-            {
-                throw new InvalidOperationException($"PasswordLength and actual Password length do not match: {Bytes[1]:X} (throws {e})");
+                throw new ArgumentOutOfRangeException(
+                    $"Packet length is invalid: {Bytes.Length} (Expected: {MinLength} <= length <= {MaxLength})");
             }
         }
 
@@ -135,7 +115,7 @@ namespace RyuSocks.Auth.Packets
 
             if (Bytes.Length is < MinLength or > MaxLength)
             {
-                throw new InvalidOperationException(
+                throw new ArgumentOutOfRangeException(
                     $"Packet length is invalid: {Bytes.Length} (Expected: {MinLength} <= length <= {MaxLength})");
             }
 
