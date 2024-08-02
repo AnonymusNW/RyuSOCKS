@@ -1,0 +1,133 @@
+// Copyright (C) RyuSOCKS
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License version 2,
+// as published by the Free Software Foundation.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+
+namespace RyuSocks.Types
+{
+    public class ProxyEndpoint : IEquatable<ProxyEndpoint>
+    {
+        private const byte MinimumDomainNameLength = byte.MinValue + 1;
+        private const byte MaximumDomainNameLength = byte.MaxValue;
+
+        public static ProxyEndpoint Null => new(new IPEndPoint(0, 0));
+
+        public AddressType Type { get; private init; }
+        public ushort Port { get; private init; }
+        public IReadOnlySet<IPAddress> Addresses { get; private init; }
+        public string DomainName { get; private init; }
+
+        public ProxyEndpoint(IPEndPoint endpoint)
+        {
+            Type = endpoint.AddressFamily switch
+            {
+                AddressFamily.InterNetwork => AddressType.Ipv4Address,
+                AddressFamily.InterNetworkV6 => AddressType.Ipv6Address,
+                _ => throw new ArgumentException($"Unsupported {nameof(AddressFamily)}: {endpoint.AddressFamily}", nameof(endpoint)),
+            };
+
+            Addresses = new HashSet<IPAddress> { endpoint.Address };
+            Port = (ushort)endpoint.Port;
+        }
+
+        public ProxyEndpoint(DnsEndPoint endpoint)
+        {
+            if (endpoint.Host.Length is < MinimumDomainNameLength or > MaximumDomainNameLength)
+            {
+                throw new ArgumentOutOfRangeException(nameof(endpoint), $"Length of Host must be between {MinimumDomainNameLength} and {MaximumDomainNameLength}.");
+            }
+
+            Type = AddressType.DomainName;
+            DomainName = endpoint.Host;
+            Addresses = new HashSet<IPAddress>(Dns.GetHostAddresses(endpoint.Host));
+            Port = (ushort)endpoint.Port;
+        }
+
+        public EndPoint ToEndPoint()
+        {
+            return Type switch
+            {
+                AddressType.Ipv4Address or AddressType.Ipv6Address => new IPEndPoint(Addresses.First(), Port),
+                AddressType.DomainName => new DnsEndPoint(DomainName, Port),
+                _ => throw new InvalidOperationException($"{nameof(ProxyEndpoint)} is not initialized."),
+            };
+        }
+
+        public bool Contains(IPEndPoint endpoint)
+        {
+            return endpoint.Port == Port && Addresses.Contains(endpoint.Address);
+        }
+
+        public override string ToString()
+        {
+            return ToEndPoint().ToString();
+        }
+
+        public bool Equals(ProxyEndpoint other)
+        {
+            if (other == null)
+            {
+                return false;
+            }
+
+            return Type == other.Type &&
+                   Port == other.Port &&
+                   ((Type == AddressType.DomainName && StringComparer.OrdinalIgnoreCase.Equals(DomainName, other.DomainName)) ||
+                    Addresses.SetEquals(other.Addresses));
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj switch
+            {
+                ProxyEndpoint proxyEndpoint => Equals(proxyEndpoint),
+                EndPoint endpoint => ToEndPoint() == endpoint,
+                _ => false,
+            };
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = new HashCode();
+
+            hashCode.Add((int)Type);
+            hashCode.Add(Port);
+
+            if (Type == AddressType.DomainName)
+            {
+                hashCode.Add(DomainName, StringComparer.OrdinalIgnoreCase);
+            }
+            else
+            {
+                hashCode.Add(Addresses.Single());
+            }
+
+            return hashCode.ToHashCode();
+        }
+
+        public static bool operator ==(ProxyEndpoint left, ProxyEndpoint right)
+        {
+            return Equals(left, right);
+        }
+
+        public static bool operator !=(ProxyEndpoint left, ProxyEndpoint right)
+        {
+            return !Equals(left, right);
+        }
+    }
+}

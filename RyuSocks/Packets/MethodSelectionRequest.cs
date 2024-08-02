@@ -62,10 +62,7 @@ namespace RyuSocks.Packets
             }
         }
 
-        public MethodSelectionRequest(byte[] packetBytes)
-        {
-            Bytes = packetBytes;
-        }
+        public MethodSelectionRequest(byte[] bytes) : base(bytes) { }
 
         public MethodSelectionRequest(AuthMethod[] methods)
         {
@@ -75,15 +72,25 @@ namespace RyuSocks.Packets
 
         public override void Validate()
         {
+            // Minimum length: VER(1) + 0x01 + METHODS(1) = 3
+            const int MinimumLength = 3;
+            // Maximum length: VER(1) + 0xFF + METHODS(0xFF) = 257
+            // Technically 256 since NoAcceptableMethods could be excluded, but we'll catch that later.
+            const int MaximumLength = 257;
+
+            if (Bytes.Length is < MinimumLength or > MaximumLength)
+            {
+                throw new InvalidOperationException($"Invalid packet length: {Bytes.Length} (Expected: {MinimumLength} <= length <= {MaximumLength})");
+            }
+
             if (Version != ProxyConsts.Version)
             {
                 throw new InvalidOperationException($"{nameof(Version)} is invalid: {Version:X} (Expected: {ProxyConsts.Version:X})");
             }
 
-            if (NumOfMethods > 1 && Methods.Contains(AuthMethod.NoAcceptableMethods))
+            if (Methods.Contains(AuthMethod.NoAcceptableMethods))
             {
-                throw new InvalidOperationException(
-                    $"{AuthMethod.NoAcceptableMethods} can't be offered with other auth methods.");
+                throw new InvalidOperationException($"{AuthMethod.NoAcceptableMethods} can't be requested.");
             }
         }
     }

@@ -14,6 +14,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+using RyuSocks.Types;
 using System;
 
 namespace RyuSocks.Auth
@@ -25,6 +26,8 @@ namespace RyuSocks.Auth
     [AuthMethodImpl(0x00)]
     public class NoAuth : IProxyAuth
     {
+        public int WrapperLength => 0;
+
         public bool Authenticate(ReadOnlySpan<byte> incomingPacket, out ReadOnlySpan<byte> outgoingPacket)
         {
             // Nothing to do here.
@@ -32,14 +35,15 @@ namespace RyuSocks.Auth
             return true;
         }
 
-        public ReadOnlySpan<byte> Wrap(ReadOnlySpan<byte> packet)
+        public int Wrap(Span<byte> packet, int packetLength, ProxyEndpoint remoteEndpoint)
         {
-            return packet;
+            return packetLength;
         }
 
-        public ReadOnlySpan<byte> Unwrap(ReadOnlySpan<byte> packet)
+        public int Unwrap(Span<byte> packet, int packetLength, out ProxyEndpoint remoteEndpoint)
         {
-            return packet;
+            remoteEndpoint = null;
+            return packetLength;
         }
     }
 }

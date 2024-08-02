@@ -26,27 +26,27 @@ namespace RyuSocks.Commands.Server
     [ProxyCommandImpl(0x01)]
     public partial class ConnectCommand : ServerCommand, IDisposable
     {
-        private static readonly IPEndPoint _nullEndPoint = new(0, 0);
-
+        public override bool HandlesCommunication => false;
+        public override bool UsesDatagrams => false;
         private TcpClient _client;
 
-        public ConnectCommand(SocksSession session, EndPoint destination) : base(session, destination)
+        public ConnectCommand(SocksSession session, IPEndPoint boundEndpoint, ProxyEndpoint destination) : base(session, boundEndpoint, destination)
         {
-            _client = destination switch
+            _client = destination.ToEndPoint() switch
             {
-                IPEndPoint ipEndpoint => new TcpClient(this, ipEndpoint),
-                DnsEndPoint dnsEndpoint => new TcpClient(this, dnsEndpoint),
+                IPEndPoint ipDestination => new TcpClient(this, ipDestination),
+                DnsEndPoint dnsDestination => new TcpClient(this, dnsDestination),
                 _ => throw new ArgumentException(
                     "Invalid EndPoint type provided.", nameof(destination)),
             };
 
             if (!_client.Connect())
             {
-                Session.SendAsync(new CommandResponse(_nullEndPoint)
+                Session.SendAsync(new CommandResponse
                 {
                     Version = ProxyConsts.Version,
                     ReplyField = _client.Error.ToReplyField(),
-                }.Bytes);
+                }.AsSpan());
 
                 _client.ResetError();
                 session.Disconnect();
@@ -70,7 +70,7 @@ namespace RyuSocks.Commands.Server
                     $"The type of LocalEndPoint is not supported: {_client.Socket.LocalEndPoint}"),
             };
 
-            Session.SendAsync(response.Bytes);
+            Session.SendAsync(response.AsSpan());
         }
 
         public override void OnReceived(ReadOnlySpan<byte> buffer)

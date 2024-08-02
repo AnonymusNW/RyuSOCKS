@@ -16,7 +16,8 @@
 
 using NetCoreServer;
 using RyuSocks.Auth;
-using RyuSocks.Commands.Server;
+using RyuSocks.Commands;
+using RyuSocks.Utils;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -26,24 +27,27 @@ namespace RyuSocks
     public partial class SocksServer : TcpServer
     {
         // TODO: Add (generated) properties for auth methods and commands
-        // TODO: Add methods to customize auth method and command behavior
-        // TODO: Generate CreateSession() method
 
-        // TODO: Put the constructors in a source generator
-        public SocksServer(IPAddress address, int port) : base(address, port)
+        public IReadOnlySet<AuthMethod> AcceptableAuthMethods { get; set; } = new HashSet<AuthMethod>();
+        public IReadOnlySet<ProxyCommand> OfferedCommands { get; set; } = new HashSet<ProxyCommand>();
+        public bool UseAllowList { get; set; }
+        public bool UseBlockList { get; set; }
+        public IReadOnlyDictionary<IPAddress, ushort[]> AllowedDestinations { get; set; } = new Dictionary<IPAddress, ushort[]>();
+        public IReadOnlyDictionary<IPAddress, ushort[]> BlockedDestinations { get; set; } = new Dictionary<IPAddress, ushort[]>();
+
+        public SocksServer(IPAddress address, ushort port = ProxyConsts.DefaultPort) : base(address, port) { }
+        public SocksServer(string address, ushort port = ProxyConsts.DefaultPort) : base(address, port) { }
+        public SocksServer(DnsEndPoint endpoint) : base(endpoint) { }
+        public SocksServer(IPEndPoint endpoint) : base(endpoint) { }
+
+        protected override TcpSession CreateSession()
         {
+            return new SocksSession(this);
         }
 
-        public SocksServer(string address, int port) : base(address, port)
+        public override bool Multicast(ReadOnlySpan<byte> buffer)
         {
-        }
-
-        public SocksServer(DnsEndPoint endpoint) : base(endpoint)
-        {
-        }
-
-        public SocksServer(IPEndPoint endpoint) : base(endpoint)
-        {
+            throw new NotSupportedException();
         }
     }
 }

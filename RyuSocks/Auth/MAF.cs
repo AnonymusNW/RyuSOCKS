@@ -14,6 +14,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+using RyuSocks.Types;
 using System;
 
 namespace RyuSocks.Auth
@@ -25,17 +26,19 @@ namespace RyuSocks.Auth
     [AuthMethodImpl(0x08)]
     public class MAF : IProxyAuth
     {
+        public int WrapperLength => throw new NotImplementedException();
+
         public bool Authenticate(ReadOnlySpan<byte> incomingPacket, out ReadOnlySpan<byte> outgoingPacket)
         {
             throw new NotImplementedException();
         }
 
-        public ReadOnlySpan<byte> Wrap(ReadOnlySpan<byte> packet)
+        public int Wrap(Span<byte> packet, int packetLength, ProxyEndpoint remoteEndpoint)
         {
             throw new NotImplementedException();
         }
 
-        public ReadOnlySpan<byte> Unwrap(ReadOnlySpan<byte> packet)
+        public int Unwrap(Span<byte> packet, int packetLength, out ProxyEndpoint remoteEndpoint)
         {
             throw new NotImplementedException();
         }

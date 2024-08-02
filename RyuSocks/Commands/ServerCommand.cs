@@ -1,3 +1,4 @@
+using RyuSocks.Types;
 using System;
 using System.Net;
 
@@ -6,10 +7,12 @@ namespace RyuSocks.Commands
     public abstract class ServerCommand : Command
     {
         protected readonly SocksSession Session;
+        protected readonly IPEndPoint BoundEndpoint;
 
-        protected ServerCommand(SocksSession session, EndPoint destination) : base(destination)
+        protected ServerCommand(SocksSession session, IPEndPoint boundEndpoint, ProxyEndpoint proxyEndpoint) : base(proxyEndpoint)
         {
             Session = session;
+            BoundEndpoint = boundEndpoint;
         }
 
         /// <summary>

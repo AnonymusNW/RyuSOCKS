@@ -1,35 +1,51 @@
+using RyuSocks.Types;
 using System;
 using System.Net;
 
 namespace RyuSocks.Commands
 {
-    public abstract class Command
+    public abstract class Command : IWrapper
     {
-        protected readonly EndPoint Destination;
+        public abstract bool HandlesCommunication { get; }
+        public abstract bool UsesDatagrams { get; }
+        public virtual int WrapperLength => 0;
 
-        protected Command(EndPoint destination)
+        protected readonly ProxyEndpoint ProxyEndpoint;
+
+        protected Command(ProxyEndpoint proxyEndpoint)
         {
-            Destination = destination;
+            ProxyEndpoint = proxyEndpoint;
         }
 
-        /// <summary>
-        /// Wrap the packet as required for the current command.
-        /// </summary>
-        /// <param name="packet">The packet to wrap.</param>
-        /// <returns>The wrapped packet.</returns>
-        public virtual ReadOnlySpan<byte> Wrap(ReadOnlySpan<byte> packet)
+        public virtual int Wrap(Span<byte> packet, int packetLength, ProxyEndpoint remoteEndpoint)
         {
-            return packet;
+            return 0;
         }
 
-        /// <summary>
-        /// Unwrap the packet as required for the current command.
-        /// </summary>
-        /// <param name="packet">The packet to unwrap.</param>
-        /// <returns>The unwrapped packet.</returns>
-        public virtual ReadOnlySpan<byte> Unwrap(ReadOnlySpan<byte> packet)
+        public virtual int Unwrap(Span<byte> packet, int packetLength, out ProxyEndpoint remoteEndpoint)
         {
-            return packet;
+            remoteEndpoint = ProxyEndpoint;
+            return 0;
+        }
+
+        public virtual int Send(ReadOnlySpan<byte> buffer)
+        {
+            throw new NotSupportedException("This command does not require a second connection, so this method must not be called.");
+        }
+
+        public virtual int SendTo(ReadOnlySpan<byte> buffer, EndPoint endpoint)
+        {
+            throw new NotSupportedException("This command does not use datagrams, so this method must not be called.");
+        }
+
+        public virtual int Receive(Span<byte> buffer)
+        {
+            throw new NotSupportedException("This command does not require a second connection, so this method must not be called.");
+        }
+
+        public virtual int ReceiveFrom(Span<byte> buffer, ref EndPoint endpoint)
+        {
+            throw new NotSupportedException("This command does not use datagrams, so this method must not be called.");
         }
     }
 }

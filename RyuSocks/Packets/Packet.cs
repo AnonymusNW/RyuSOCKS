@@ -14,6 +14,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+using System;
+
 namespace RyuSocks.Packets
 {
     public abstract class Packet
@@ -21,12 +23,41 @@ namespace RyuSocks.Packets
         /// <summary>
         /// The contents of the packet.
         /// </summary>
-        public byte[] Bytes { get; protected init; }
+        public byte[] Bytes { get; protected set; }
+
+        /// <inheritdoc cref="Bytes"/>
+        public Span<byte> AsSpan() => Bytes;
 
         /// <summary>
         /// Validate the structure of the packet.
         /// This method is not supposed to verify the contents of the packet in depth.
         /// </summary>
         public abstract void Validate();
+
+        /// <summary>
+        /// Check whether the structure of the packet is valid.
+        /// This method calls <see cref="Validate"/> internally, but doesn't throw the exception on failure
+        /// and returns a <see langword="bool"/> instead.
+        /// </summary>
+        public bool IsValid()
+        {
+            try
+            {
+                Validate();
+            }
+            catch
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        protected Packet() { }
+
+        protected Packet(byte[] bytes)
+        {
+            Bytes = bytes;
+        }
     }
 }

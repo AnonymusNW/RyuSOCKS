@@ -14,8 +14,8 @@ tab_width = 4
 end_of_line = lf
 insert_final_newline = true
 
-# JSON and YAML files
-[{*.json,*.yml,*.yaml}]
+# JSON, YAML and XML files
+[*.{json,yml,yaml,xml,runsettings}]
 
 # Indentation and spacing
 indent_size = 2
@@ -237,4 +237,9 @@ dotnet_naming_style.IPascalCase.required_suffix =
 dotnet_naming_style.IPascalCase.word_separator =
 dotnet_naming_style.IPascalCase.capitalization = pascal_case
 
+### Rule exceptions ###
 
+[RyuSocks.Test/**.cs]
+
+# Avoid constant arrays as arguments
+dotnet_diagnostic.CA1861.severity = none

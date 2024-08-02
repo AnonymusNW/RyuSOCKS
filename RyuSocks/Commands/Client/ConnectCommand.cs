@@ -15,41 +15,43 @@
  */
 
 using RyuSocks.Packets;
+using RyuSocks.Types;
 using RyuSocks.Utils;
 using System;
-using System.Net;
 
 namespace RyuSocks.Commands.Client
 {
     [ProxyCommandImpl(0x01)]
     public partial class ConnectCommand : ClientCommand
     {
-        public ConnectCommand(SocksClient client, EndPoint destination) : base(client, destination)
-        {
-            CommandRequest request;
+        public override bool HandlesCommunication => false;
+        public override bool UsesDatagrams => false;
 
-            switch (destination)
+        public ConnectCommand(SocksClient client, ProxyEndpoint destination) : base(client, destination)
+        {
+            CommandRequest request = new(destination)
             {
-                case IPEndPoint ipDestination:
-                    request = new CommandRequest(ipDestination)
-                    {
-                        Version = ProxyConsts.Version,
-                        Command = ProxyCommand.Connect,
-                    };
-                    break;
-                case DnsEndPoint dnsDestination:
-                    request = new CommandRequest(dnsDestination)
-                    {
-                        Version = ProxyConsts.Version,
-                        Command = ProxyCommand.Connect,
-                    };
-                    break;
-                default:
-                    throw new ArgumentException("Invalid EndPoint type provided.", nameof(destination));
-            }
+                Version = ProxyConsts.Version,
+                Command = ProxyCommand.Connect,
+            };
 
             request.Validate();
-            Client.SendAsync(request.Bytes);
+            Client.Send(request.AsSpan());
+        }
+
+        public override void ProcessResponse(CommandResponse response)
+        {
+            EnsureSuccessReply(response.ReplyField);
+
+            if (ServerEndpoint == null)
+            {
+                ServerEndpoint = response.ProxyEndpoint;
+                Accepted = true;
+                Ready = true;
+                return;
+            }
+
+            throw new InvalidOperationException($"Unexpected invocation of {nameof(ProcessResponse)}. {nameof(ServerEndpoint)} is already assigned.");
         }
     }
 }
