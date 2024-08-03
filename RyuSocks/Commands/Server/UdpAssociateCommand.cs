@@ -18,6 +18,7 @@ using RyuSocks.Utils;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Sockets;
 
 namespace RyuSocks.Commands.Server
 {
@@ -26,6 +27,10 @@ namespace RyuSocks.Commands.Server
     {
         public override bool HandlesCommunication => true;
         public override bool UsesDatagrams => true;
+        // TODO: Improve WrapperLength value.
+        //       This is currently set to the maximum length of an EndpointPacket,
+        //       but we usually don't need that much space.
+        public override int WrapperLength => 262;
         private UdpServer _server;
 
         public UdpAssociateCommand(SocksSession session, IPEndPoint boundEndpoint, ProxyEndpoint source) : base(session, boundEndpoint, source)
@@ -74,9 +79,10 @@ namespace RyuSocks.Commands.Server
             return packet.Bytes.Length;
         }
 
-        public override int SendTo(ReadOnlySpan<byte> buffer, EndPoint endpoint)
+        public override int SendTo(ReadOnlySpan<byte> buffer, SocketFlags socketFlags, EndPoint remoteEP)
         {
-            return (int)_server.Send(endpoint, buffer);
+            // TODO: Use socketFlags
+            return (int)_server.Send(remoteEP, buffer);
         }
 
         public override void OnReceived(ReadOnlySpan<byte> buffer)

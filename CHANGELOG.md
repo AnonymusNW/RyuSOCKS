@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `SocksClient.Connect()` implementation which takes an `IPEndPoint`.
+- `Socket.Disconnect()` method is exposed by `SocksClient` and commands now.
+
+### Fixed
+
+- `SocksClient.Dispose()` now also calls `Dispose()` for commands
+  which implement `IDisposable`.
+- `UdpAssociateCommand.WrapperLength` now correctly returns the maximum amount 
+  of bytes required to wrap/unwrap a `UdpPacket`.
+- The send and receive methods of commands hava parameters for
+  `SocketFlags` and `SocketError` now.
+
+## [0.2.0-alpha] - 2024-07-28
+
+### Added
+
 - Logo made by [Justin de Haas](https://onemuri.nl/).
 - Basic SOCKS5 proxy client (not compliant yet).
 - New generated `IProxyAuth.GetAuth()` extension method
@@ -57,5 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable SOCKS commands.
 - Configurable allow and block lists.
 
-[Unreleased]: https://github.com/TSRBerry/RyuSOCKS/compare/v0.1.0-alpha...HEAD
+[Unreleased]: https://github.com/TSRBerry/RyuSOCKS/compare/v0.2.0-alpha...HEAD
+[0.2.0-alpha]: https://github.com/TSRBerry/RyuSOCKS/compare/v0.1.0-alpha...v0.2.0-alpha
 [0.1.0-alpha]: https://github.com/TSRBerry/RyuSOCKS/releases/tag/v0.1.0-alpha
