@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `SocksClient.Connect()` implementation which takes an `IPEndPoint`.
 - `Socket.Disconnect()` method is exposed by `SocksClient` and commands now.
+- Username and password authentication method
+  according to [RFC 1929](https://datatracker.ietf.org/doc/html/rfc1929) ([#16]).
 
 ### Fixed
 
@@ -37,8 +39,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New interface `IWrapper` which contains `Wrap()` and `Unwrap()`.
 - New properties for `Command` implementations to control communication
   with the proxy server.
-- Username and password authentication method
-  according to [RFC 1929](https://datatracker.ietf.org/doc/html/rfc1929) ([#16](https://github.com/TSRBerry/RyuSOCKS/pull/16))
 - New method `Packet.IsValid()` which returns a bool instead of throwing exceptions. 
 - `Validate()` implementation for `EndPointPacket`.
 - `Socket.Close()` and `Socket.Dispose()` methods are exposed by `SocksClient` now.
@@ -76,3 +76,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]: https://github.com/TSRBerry/RyuSOCKS/compare/v0.2.0-alpha...HEAD
 [0.2.0-alpha]: https://github.com/TSRBerry/RyuSOCKS/compare/v0.1.0-alpha...v0.2.0-alpha
 [0.1.0-alpha]: https://github.com/TSRBerry/RyuSOCKS/releases/tag/v0.1.0-alpha
+
+[#16]: https://github.com/TSRBerry/RyuSOCKS/pull/16
