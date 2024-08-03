@@ -6,8 +6,7 @@ namespace RyuSocks.Test.Auth
 {
     public class UsernameAndPasswordRequestTests
     {
-        private const string LongWord =
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        private const string LongWord = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
         [Theory]
         [InlineData(new byte[] { 0xFF, 0xFF, 0xAA, 0x00, 0xCC }, true)]
@@ -35,6 +34,7 @@ namespace RyuSocks.Test.Auth
         public void Validate_ThrowsOnNoUsernameOrPassword(string username, string password, bool isEmpty)
         {
             UsernameAndPasswordRequest usernameAndPasswordRequest = new(username, password);
+
             if (!isEmpty)
             {
                 usernameAndPasswordRequest.Validate();
@@ -51,6 +51,7 @@ namespace RyuSocks.Test.Auth
         public void Validate_ThrowsOnWrongVersion(byte[] incomingPacket, bool hasRightVersion)
         {
             UsernameAndPasswordRequest usernameAndPasswordRequest = new(incomingPacket);
+
             if (hasRightVersion)
             {
                 usernameAndPasswordRequest.Validate();
@@ -74,8 +75,7 @@ namespace RyuSocks.Test.Auth
             }
             else
             {
-                Assert.ThrowsAny<Exception>(
-                    () => new UsernameAndPasswordRequest(username, password));
+                Assert.ThrowsAny<Exception>(() => new UsernameAndPasswordRequest(username, password));
             }
         }
     }

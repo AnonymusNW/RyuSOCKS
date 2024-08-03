@@ -12,8 +12,8 @@ namespace RyuSocks.Test.Auth
         [InlineData(AuthConsts.UsernameAndPasswordVersion, true)]
         public void Validate_ThrowsOnWrongVersion(byte version, bool hasRightVersion)
         {
-            UsernameAndPasswordResponse expectedUsernameAndPasswordResponse =
-                            new([version, 0]);
+            UsernameAndPasswordResponse expectedUsernameAndPasswordResponse = new([version, 0]);
+
             if (hasRightVersion)
             {
                 expectedUsernameAndPasswordResponse.Validate();

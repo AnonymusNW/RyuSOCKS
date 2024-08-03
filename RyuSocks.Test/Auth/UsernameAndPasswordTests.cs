@@ -32,7 +32,6 @@ namespace RyuSocks.Test.Auth
 
         public class NoExistingData
         {
-
             private readonly UsernameAndPassword _usernameAndPassword = new() { Database = [], };
 
             private void SetUsernameAndPassword(string username, string password)
@@ -49,8 +48,7 @@ namespace RyuSocks.Test.Auth
             public void Authenticate_DoesNotWorkOnEmptyUserListClientSide(string username, string password)
             {
                 UsernameAndPasswordRequest expectedUsernameAndPasswordRequest = new(username, password);
-                UsernameAndPasswordResponse expectedUsernameAndPasswordResponse =
-                    new([AuthConsts.UsernameAndPasswordVersion, 1]);
+                UsernameAndPasswordResponse expectedUsernameAndPasswordResponse = new([AuthConsts.UsernameAndPasswordVersion, 1]);
                 SetUsernameAndPassword(username, password);
                 UsernameAndPassword usernameAndPassword = _usernameAndPassword;
                 usernameAndPassword.IsClient = true;
