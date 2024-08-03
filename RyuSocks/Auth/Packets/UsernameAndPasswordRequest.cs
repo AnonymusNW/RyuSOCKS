@@ -127,12 +127,12 @@ namespace RyuSocks.Auth.Packets
                 throw new InvalidOperationException($"{nameof(Version)} is invalid: {Version:X} (Expected: {AuthConsts.UsernameAndPasswordVersion:X})");
             }
 
-            if (string.IsNullOrEmpty(Username) || (UsernameLength > 0xFF))
+            if (string.IsNullOrEmpty(Username))
             {
                 throw new InvalidOperationException($"{nameof(Username)} can't be null or empty.");
             }
 
-            if (string.IsNullOrEmpty(Password) || (PasswordLength > 0xFF))
+            if (string.IsNullOrEmpty(Password))
             {
                 throw new InvalidOperationException($"{nameof(Password)} can't be null or empty.");
             }
