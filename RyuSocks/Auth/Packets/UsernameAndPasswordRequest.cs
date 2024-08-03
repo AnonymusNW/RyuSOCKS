@@ -22,6 +22,8 @@ namespace RyuSocks.Auth.Packets
 {
     public class UsernameAndPasswordRequest : Packet
     {
+        private const int MinimumPacketLength = 4;
+        private const int MaximumPacketLength = 513;
         public byte Version
         {
             get
@@ -88,35 +90,36 @@ namespace RyuSocks.Auth.Packets
 
         public UsernameAndPasswordRequest(byte[] packetBytes) : base(packetBytes)
         {
-            const int MinLength = 4;
-            const int MaxLength = 513;
-
-            if (Bytes.Length is < MinLength or > MaxLength)
+            if (Bytes.Length is < MinimumPacketLength or > MaximumPacketLength)
             {
                 throw new ArgumentOutOfRangeException(
-                    $"Packet length is invalid: {Bytes.Length} (Expected: {MinLength} <= length <= {MaxLength})");
+                    $"Packet length is invalid: {Bytes.Length} (Expected: {MinimumPacketLength} <= length <= {MaximumPacketLength})");
             }
         }
 
         public UsernameAndPasswordRequest(string username, string password)
         {
-            Bytes = new byte[4 + username.Length + password.Length];
+            int packetLength = username.Length + password.Length + 4;
+            if (packetLength < MaximumPacketLength)
+            {
+                Bytes = new byte[packetLength];
+            }
+            else
+            {
+                throw new ArgumentOutOfRangeException(
+                    $"Packet length is invalid: {packetLength} (Expected: {MinimumPacketLength} <= length <= {MaximumPacketLength})");
+            }
             Version = AuthConsts.UsernameAndPasswordVersion;
-            UsernameLength = (byte)username.Length;
             Username = username;
-            PasswordLength = (byte)password.Length;
             Password = password;
         }
 
         public override void Validate()
         {
-            const int MinLength = 4;
-            const int MaxLength = 513;
-
-            if (Bytes.Length is < MinLength or > MaxLength)
+            if (Bytes.Length is < MinimumPacketLength or > MaximumPacketLength)
             {
                 throw new ArgumentOutOfRangeException(
-                    $"Packet length is invalid: {Bytes.Length} (Expected: {MinLength} <= length <= {MaxLength})");
+                    $"Packet length is invalid: {Bytes.Length} (Expected: {MinimumPacketLength} <= length <= {MaximumPacketLength})");
             }
 
             if (Version != AuthConsts.UsernameAndPasswordVersion)
@@ -124,12 +127,12 @@ namespace RyuSocks.Auth.Packets
                 throw new InvalidOperationException($"{nameof(Version)} is invalid: {Version:X} (Expected: {AuthConsts.UsernameAndPasswordVersion:X})");
             }
 
-            if (string.IsNullOrEmpty(Username))
+            if (string.IsNullOrEmpty(Username) || (UsernameLength > 0xFF))
             {
                 throw new InvalidOperationException($"{nameof(Username)} can't be null or empty.");
             }
 
-            if (string.IsNullOrEmpty(Password))
+            if (string.IsNullOrEmpty(Password) || (PasswordLength > 0xFF))
             {
                 throw new InvalidOperationException($"{nameof(Password)} can't be null or empty.");
             }

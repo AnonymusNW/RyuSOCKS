@@ -29,7 +29,7 @@ namespace RyuSocks.Auth
     [AuthMethodImpl(0x02)]
     public class UsernameAndPassword : IProxyAuth
     {
-        public int WrapperLength => throw new NotImplementedException();
+        public int WrapperLength => 0;
 
         public string Username;
         public string Password;

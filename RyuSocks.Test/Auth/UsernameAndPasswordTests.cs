@@ -16,6 +16,7 @@
 
 using RyuSocks.Auth;
 using RyuSocks.Auth.Packets;
+using RyuSocks.Types;
 using System;
 using Xunit;
 
@@ -157,11 +158,12 @@ namespace RyuSocks.Test.Auth
         {
             byte[] originalPacket = (byte[])packet.Clone();
             int packetLength = packet.Length;
-            UsernameAndPassword noAuth = new();
+            UsernameAndPassword auth = new();
 
-            noAuth.Wrap(packet, packetLength, null);
+            int wrappedPacketLength = auth.Wrap(packet, packetLength, null);
 
-            Assert.Equal(packetLength, packet.Length);
+            Assert.Equal(0, auth.WrapperLength);
+            Assert.Equal(packetLength, wrappedPacketLength);
             Assert.Equal(originalPacket, packet);
         }
 
@@ -171,11 +173,13 @@ namespace RyuSocks.Test.Auth
         {
             byte[] originalPacket = (byte[])packet.Clone();
             int packetLength = packet.Length;
-            UsernameAndPassword noAuth = new();
+            UsernameAndPassword auth = new();
 
-            noAuth.Unwrap(packet, packetLength, out _);
+            int unwrappedPacketLength = auth.Unwrap(packet, packetLength, out ProxyEndpoint remoteEndpoint);
 
-            Assert.Equal(packetLength, packet.Length);
+            Assert.Equal(0, auth.WrapperLength);
+            Assert.Null(remoteEndpoint);
+            Assert.Equal(packetLength, unwrappedPacketLength);
             Assert.Equal(originalPacket, packet);
         }
     }

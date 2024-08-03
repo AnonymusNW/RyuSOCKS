@@ -50,10 +50,12 @@ namespace RyuSocks.Auth.Packets
             Bytes = new byte[2];
         }
 
-        public UsernameAndPasswordResponse(byte[] packetBytes)
+        public UsernameAndPasswordResponse(byte status)
         {
-            Bytes = packetBytes;
+            Status = status;
         }
+
+        public UsernameAndPasswordResponse(byte[] packetBytes) : base(packetBytes) { }
 
         public override void Validate()
         {
