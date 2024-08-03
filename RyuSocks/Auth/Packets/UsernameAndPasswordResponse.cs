@@ -50,7 +50,7 @@ namespace RyuSocks.Auth.Packets
             Bytes = new byte[2];
         }
 
-        public UsernameAndPasswordResponse(byte status)
+        public UsernameAndPasswordResponse(byte status) : this()
         {
             Status = status;
         }
