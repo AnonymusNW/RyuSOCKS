@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `SocksClient.Connect()` implementation which takes an `IPEndPoint`.
+- `Socket.Disconnect()` method is exposed by `SocksClient` and commands now.
+- Username and password authentication method
+  according to [RFC 1929](https://datatracker.ietf.org/doc/html/rfc1929) ([#16]).
+
+### Fixed
+
+- `SocksClient.Dispose()` now also calls `Dispose()` for commands
+  which implement `IDisposable`.
+- `UdpAssociateCommand.WrapperLength` now correctly returns the maximum amount 
+  of bytes required to wrap/unwrap a `UdpPacket`.
+- The send and receive methods of commands hava parameters for
+  `SocketFlags` and `SocketError` now.
+
 ## [0.2.0-alpha] - 2024-07-28
 
 ### Added
@@ -60,3 +76,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]: https://github.com/TSRBerry/RyuSOCKS/compare/v0.2.0-alpha...HEAD
 [0.2.0-alpha]: https://github.com/TSRBerry/RyuSOCKS/compare/v0.1.0-alpha...v0.2.0-alpha
 [0.1.0-alpha]: https://github.com/TSRBerry/RyuSOCKS/releases/tag/v0.1.0-alpha
+
+[#16]: https://github.com/TSRBerry/RyuSOCKS/pull/16

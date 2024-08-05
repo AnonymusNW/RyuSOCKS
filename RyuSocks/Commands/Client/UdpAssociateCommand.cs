@@ -22,11 +22,15 @@ using System.Net.Sockets;
 namespace RyuSocks.Commands.Client
 {
     [ProxyCommandImpl(0x03)]
-    public partial class UdpAssociateCommand : ClientCommand
+    public partial class UdpAssociateCommand : ClientCommand, IDisposable
     {
         private readonly Socket _socket;
         public override bool HandlesCommunication => true;
         public override bool UsesDatagrams => true;
+        // TODO: Improve WrapperLength value.
+        //       This is currently set to the maximum length of an EndpointPacket,
+        //       but we usually don't need that much space.
+        public override int WrapperLength => 262;
 
         public UdpAssociateCommand(SocksClient client, ProxyEndpoint source) : base(client, source)
         {
@@ -52,6 +56,12 @@ namespace RyuSocks.Commands.Client
 
             request.Validate();
             Client.Send(request.AsSpan());
+        }
+
+        public void Dispose()
+        {
+            _socket.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         public override int Wrap(Span<byte> buffer, int packetLength, ProxyEndpoint remoteEndpoint)
@@ -93,22 +103,29 @@ namespace RyuSocks.Commands.Client
             throw new InvalidOperationException($"Unexpected invocation of {nameof(ProcessResponse)}. {nameof(ServerEndpoint)} is already assigned.");
         }
 
-        public override int ReceiveFrom(Span<byte> buffer, ref EndPoint endpoint)
+        public override void Disconnect()
+        {
+            _socket.Disconnect(false);
+        }
+
+        public override int ReceiveFrom(Span<byte> buffer, SocketFlags socketFlags, ref EndPoint remoteEP)
         {
             int receivedBytes = 0;
 
             // Discard packets from unexpected endpoints
-            while (ServerEndpoint.ToEndPoint() != endpoint)
+            while (ServerEndpoint.ToEndPoint() != remoteEP)
             {
-                receivedBytes = _socket.ReceiveFrom(buffer, ref endpoint);
+                receivedBytes = _socket.ReceiveFrom(buffer, socketFlags, ref remoteEP);
             }
 
             return receivedBytes;
         }
 
-        public override int SendTo(ReadOnlySpan<byte> buffer, EndPoint endpoint)
+        public override int SendTo(ReadOnlySpan<byte> buffer, SocketFlags socketFlags, EndPoint remoteEP)
         {
-            return _socket.SendTo(buffer, ServerEndpoint.ToEndPoint());
+            // NOTE: remoteEP is set during Wrap() and gets ignored here,
+            //       since the packet needs to be sent to the proxy server.
+            return _socket.SendTo(buffer, socketFlags, ServerEndpoint.ToEndPoint());
         }
     }
 }
